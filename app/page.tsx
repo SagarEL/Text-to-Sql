@@ -14,7 +14,7 @@ export default function Home() {
       </main>
       
       <footer className="text-center mt-8 text-sm text-muted-foreground">
-        Powered by Next.js, SQLite, and OpenAI
+        Powered by Next.js, SQLite, and Gemini
       </footer>
     </div>
   );

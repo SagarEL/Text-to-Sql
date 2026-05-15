@@ -12,7 +12,7 @@ This application allows users to generate SQL queries using natural language inp
 
 ## Features
 
-- Natural language to SQL query conversion
+- Natural language to SQL query conversion (Gemini-powered)
 - Database connection management
 - Mock database option for testing
 - Real-time query results display
@@ -28,8 +28,8 @@ This application allows users to generate SQL queries using natural language inp
 - Backend:
   - FastAPI for handling database connections and text-to-SQL conversion
   - Python for backend logic
-  - OpenAI for text-to-SQL conversion
-  
+  - Google Gemini for text-to-SQL conversion
+
 - API Routes:
   - `db-structure/route.ts`: Next.js API route for fetching database structure
   - `proxy/route.ts`: Next.js API route for communicating with FastAPI backend
@@ -55,22 +55,17 @@ This application allows users to generate SQL queries using natural language inp
    ```
 
 4. Install backend dependencies:
-- Clone the backend repository:
    ```bash
-   git clone https://github.com/CubeStar1/N2SQL-API.git
    cd N2SQL-API
-   ```
-
-2. Install backend dependencies:
-   ```bash
    pip install -r requirements.txt
    ```
 
 5. Set up backend environment variables:
-   Create a `.env` file in the `N2SQL-API` directory and add necessary variables.
+   Edit the `.env` file in the `N2SQL-API` directory and add your Gemini API key:
    ```bash
-   OPENAI_API_KEY=<your-openai-api-key>
+   GEMINI_API_KEY=<your-gemini-api-key>
    ```
+   You can get a Gemini API key from https://aistudio.google.com/app/apikey
 
 ## Usage
 
@@ -98,5 +93,3 @@ This application allows users to generate SQL queries using natural language inp
 8. Click "Generate SQL" to convert your query to SQL and execute it.
 
 9. View the results displayed below the query input.
-
-

@@ -13,8 +13,7 @@ export function LLMSelector({ value, onChange }: LLMSelectorProps) {
         <SelectValue placeholder="Select LLM Model" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="openai">OpenAI GPT-4o-mini</SelectItem>
-        <SelectItem value="gemini">Gemini 1.5 Flash</SelectItem>
+        <SelectItem value="gemini">Gemini 2.5 Flash</SelectItem>
         <SelectItem value="local">SQLCoder-7B (Local)</SelectItem>
       </SelectContent>
     </Select>

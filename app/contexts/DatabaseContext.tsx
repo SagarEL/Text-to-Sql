@@ -45,7 +45,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [useMockDb, setUseMockDb] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [dbStructure, setDbStructure] = useState<{[key: string]: string[]} | null>(null);
-  const [llmChoice, setLlmChoice] = useState('openai');
+  const [llmChoice, setLlmChoice] = useState('gemini');
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -104,7 +104,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setUseMockDb(false);
     setIsConnected(false);
     setDbStructure(null);
-    setLlmChoice('openai');
+    setLlmChoice('gemini');
     localStorage.removeItem('dbCredentials');
     localStorage.removeItem('useMockDb');
     localStorage.removeItem('isConnected');
