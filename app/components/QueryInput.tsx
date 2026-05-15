@@ -7,7 +7,9 @@ import { DatabaseConnection } from './DatabaseConnection';
 import { DatabaseStructure } from './DatabaseStructure';
 import { QueryForm } from './QueryForm';
 import { QueryResults } from './QueryResults';
+import { QueryHistory } from './QueryHistory';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryHistory, QueryHistoryEntry } from '@/hooks/use-query-history';
 import { Button } from "@/components/ui/button";
 import { LLMSelector } from './LLMSelector';
 import { useDatabaseContext } from '@/app/contexts/DatabaseContext';
@@ -33,6 +35,7 @@ export default function NaturalLanguageQueryInput() {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast()
+  const { history, addEntry, removeEntry, clearAll } = useQueryHistory();
 
   const handleCredentialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDbCredentials({ ...dbCredentials, [e.target.name]: e.target.value });
@@ -91,8 +94,8 @@ export default function NaturalLanguageQueryInput() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const runQuery = async (questionToRun: string) => {
+    if (!questionToRun.trim()) return;
     setIsLoading(true);
 
     try {
@@ -101,7 +104,7 @@ export default function NaturalLanguageQueryInput() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question,
+          question: questionToRun,
           db_credentials: dbCredentials,
           llm_choice: llmChoice
         }),
@@ -117,6 +120,13 @@ export default function NaturalLanguageQueryInput() {
       setSqlQuery(data.sql_query);
       setQueryResults(data.results);
       setVisualization(data.visualization || null);
+
+      addEntry({
+        question: questionToRun,
+        sqlQuery: data.sql_query || '',
+        rowCount: Array.isArray(data.results) ? data.results.length : 0,
+      });
+
       toast({
         title: "Query Generated",
         description: "SQL query has been successfully generated and executed.",
@@ -132,6 +142,16 @@ export default function NaturalLanguageQueryInput() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await runQuery(question);
+  };
+
+  const handleRerun = (entry: QueryHistoryEntry) => {
+    setQuestion(entry.question);
+    runQuery(entry.question);
   };
 
   const sampleQuery = "Show me all the launch vehicles between 2001 and 2016";
@@ -169,14 +189,20 @@ export default function NaturalLanguageQueryInput() {
             </div>
           </CardContent>
         </Card>
-        <DatabaseConnection 
-          dbCredentials={dbCredentials} 
-          handleCredentialChange={handleCredentialChange} 
+        <DatabaseConnection
+          dbCredentials={dbCredentials}
+          handleCredentialChange={handleCredentialChange}
           handleConnect={handleConnect}
           isConnecting={isConnecting}
           useMockDb={useMockDb}
         />
         <DatabaseStructure dbStructure={dbStructure} />
+        <QueryHistory
+          history={history}
+          onRerun={handleRerun}
+          onRemove={removeEntry}
+          onClearAll={clearAll}
+        />
       </div>
 
       <Card className="w-full lg:w-2/3">

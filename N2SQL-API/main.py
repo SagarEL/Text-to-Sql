@@ -394,15 +394,47 @@ async def query(request: QueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+SQL_KEYWORDS = ("SELECT", "INSERT", "UPDATE", "DELETE", "ALTER", "CREATE", "DROP", "TRUNCATE", "WITH")
+
+
+def extract_sql_from_text(text: str) -> str | None:
+    """Pull a SQL statement out of an LLM reply. Handles ```sql fences and inline statements."""
+    import re
+
+    fence = re.search(r"```(?:sql)?\s*(.*?)```", text, re.IGNORECASE | re.DOTALL)
+    if fence:
+        candidate = fence.group(1).strip()
+        if any(candidate.upper().lstrip().startswith(kw) for kw in SQL_KEYWORDS):
+            return candidate
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if any(stripped.upper().startswith(kw) for kw in SQL_KEYWORDS):
+            return text[text.find(stripped):].strip().rstrip("`").strip()
+
+    return None
+
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
         db_structure = get_db_structure(request.db_credentials)
 
-        system_message = f"""You are a helpful AI assistant that can query a PostgreSQL database.
-        When generating SQL queries, do not include ``` or 'sql' tags. Do not even include any kind of comments, give just the queries. Only return the raw SQL query.
-        Here's the database schema: {db_structure}
-        """
+        system_message = f"""You are a helpful AI assistant with access to a PostgreSQL database.
+
+You can do two kinds of things:
+1. Answer general questions (about the data, the schema, SQL concepts, analysis suggestions, etc.) in plain language using markdown.
+2. Run a query against the database when the user asks for data, a change, an insert, a delete, or any other DB operation. You can run SELECT, INSERT, UPDATE, DELETE, ALTER, CREATE, DROP, and TRUNCATE.
+
+How to respond:
+- If the user wants data or a DB change, reply with ONLY the raw SQL statement (no backticks, no 'sql' label, no comments, no explanation). The system will execute it and format the result for the user.
+- If the user is asking a conceptual or conversational question, reply in natural language markdown — do NOT include any SQL.
+- For UPDATE/DELETE, always include a WHERE clause unless the user explicitly says "all rows".
+- Use double quotes for table/column names with spaces or special characters.
+
+Database schema:
+{db_structure}
+"""
 
         messages = [{"role": "system", "content": system_message}] + [m.dict() for m in request.messages]
 
@@ -429,10 +461,12 @@ async def chat(request: ChatRequest):
         else:
             raise ValueError("Invalid LLM choice")
 
-        if "SELECT" in ai_message.upper():
+        sql_query = extract_sql_from_text(ai_message)
+
+        if sql_query:
             try:
-                results, viz_config = execute_sql_query(ai_message, request.db_credentials)
-                formatted_response = format_response_with_llm(ai_message, str(results), request.llm_choice)
+                results, viz_config = execute_sql_query(sql_query, request.db_credentials)
+                formatted_response = format_response_with_llm(sql_query, str(results), request.llm_choice)
 
                 response_data = {
                     "role": "assistant",
@@ -446,7 +480,7 @@ async def chat(request: ChatRequest):
                 return response_data
             except Exception as e:
                 error_message = f"Error executing query: {str(e)}"
-                formatted_response = format_response_with_llm(ai_message, error_message, request.llm_choice)
+                formatted_response = format_response_with_llm(sql_query, error_message, request.llm_choice)
                 return {"role": "assistant", "content": formatted_response}
         else:
             return {"role": "assistant", "content": ai_message}
